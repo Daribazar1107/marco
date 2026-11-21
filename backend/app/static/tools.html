@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="mn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Марко</title>
+  <style>
+    body {
+      margin: 0;
+      background: #fafaf9;
+      color: #1c1917;
+      font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px 60px; }
+
+    header { border-bottom: 1px solid #d6d3d1; padding-bottom: 14px; margin-bottom: 20px; }
+    header h1 { margin: 0; font-size: 26px; }
+    header p { margin: 2px 0 0; color: #78716c; font-size: 14px; }
+
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; }
+    .tabs button {
+      font: inherit; padding: 8px 14px; border: 1px solid #d6d3d1; background: #fff;
+      border-radius: 6px; cursor: pointer; color: #44403c;
+    }
+    .tabs button.active { background: #1c1917; border-color: #1c1917; color: #fff; }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .box { background: #fff; border: 1px solid #d6d3d1; border-radius: 8px; padding: 18px; margin-bottom: 16px; }
+    .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .note { color: #78716c; font-size: 14px; }
+
+    .btn {
+      font: inherit; padding: 9px 16px; border-radius: 6px; cursor: pointer;
+      border: 1px solid #1d4ed8; background: #1d4ed8; color: #fff;
+    }
+    .btn:hover { background: #1e40af; }
+    .btn:disabled { opacity: 0.5; cursor: wait; }
+    .btn.rec { background: #b91c1c; border-color: #b91c1c; }
+    .btn.plain { background: #fff; color: #1c1917; border-color: #d6d3d1; }
+    #timer { font-variant-numeric: tabular-nums; color: #b91c1c; }
+
+    h2 { font-size: 15px; margin: 0 0 8px; color: #57534e; }
+    .entry { border-top: 1px solid #e7e5e4; padding: 10px 0; display: flex; gap: 12px; }
+    .entry:first-child { border-top: none; }
+    .entry .time { color: #a8a29e; font-size: 13px; min-width: 44px; padding-top: 2px; }
+    .entry .text { flex: 1; }
+    .entry.error .text { color: #b91c1c; }
+    .entry a { color: #1d4ed8; font-size: 14px; cursor: pointer; margin-left: 10px; white-space: nowrap; }
+    .empty { color: #a8a29e; padding: 6px 0; }
+
+    textarea {
+      width: 100%; box-sizing: border-box; min-height: 120px; resize: vertical;
+      font: inherit; padding: 10px; border: 1px solid #d6d3d1; border-radius: 6px;
+    }
+    select, input[type="range"] { font: inherit; }
+    select { padding: 6px; border: 1px solid #d6d3d1; border-radius: 6px; background: #fff; }
+    label { font-size: 14px; color: #57534e; }
+    audio { width: 100%; margin-top: 14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Марко</h1>
+      <p>Яриа ↔ текст туршилтын хуудас · <a href="/" style="color:#1d4ed8">Марко руу буцах</a></p>
+    </header>
+
+    <div class="tabs">
+      <button class="active" data-tab="stt">Яриа → Текст</button>
+      <button data-tab="tts">Текст → Яриа</button>
+    </div>
+
+    <!-- Speech to text -->
+    <section class="panel active" id="stt">
+      <div class="box">
+        <div class="row">
+          <button class="btn" id="rec">● Бичиж эхлэх</button>
+          <span id="timer"></span>
+          <span class="note" id="recStatus">Товч дараад монголоор ярина уу. Space товч ч ажиллана.</span>
+        </div>
+      </div>
+      <div class="box">
+        <div class="row" style="justify-content: space-between">
+          <h2>Танигдсан текст</h2>
+          <a class="note" id="clear" style="cursor: pointer">цэвэрлэх</a>
+        </div>
+        <div id="list"><div class="empty">Одоохондоо юу ч алга.</div></div>
+      </div>
+    </section>
+
+    <!-- Text to speech -->
+    <section class="panel" id="tts">
+      <div class="box">
+        <textarea id="ttsText" placeholder="Уншуулах текстээ энд бичнэ үү...">Сайн байна уу! Би Марко, таны хувийн туслах.</textarea>
+        <div class="row" style="margin-top: 12px">
+          <label>Хоолой
+            <select id="voice">
+              <option value="mn-MN-BataaNeural">Батаа (эрэгтэй)</option>
+              <option value="mn-MN-YesuiNeural">Есүй (эмэгтэй)</option>
+            </select>
+          </label>
+          <label>Хурд <input type="range" id="rate" min="-50" max="50" step="10" value="0"> <span id="rateValue">0%</span></label>
+          <span class="note" id="count"></span>
+        </div>
+        <div class="row" style="margin-top: 14px">
+          <button class="btn" id="speak">Унших</button>
+          <a class="btn plain" id="download" style="display: none; text-decoration: none">Татаж авах</a>
+          <span class="note" id="ttsStatus"></span>
+        </div>
+        <audio id="player" controls hidden></audio>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // ---------- Tabs ----------
+    document.querySelectorAll(".tabs button").forEach((tab) => {
+      tab.onclick = () => showTab(tab.dataset.tab);
+    });
+    function showTab(name) {
+      document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
+      document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("active", p.id === name));
+    }
+
+    // ---------- Speech to text ----------
+    const recButton = document.getElementById("rec");
+    const recStatus = document.getElementById("recStatus");
+    const timer = document.getElementById("timer");
+    const list = document.getElementById("list");
+    let recorder = null;
+    let chunks = [];
+    let ticker = null;
+
+    async function toggleRecording() {
+      if (recButton.disabled) return;
+
+      // Second press: stop. The "stop" event below sends the audio.
+      if (recorder && recorder.state === "recording") {
+        recorder.stop();
+        return;
+      }
+
+      // First press: start
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (error) {
+        recStatus.textContent = "Микрофон ашиглах зөвшөөрөл өгнө үү.";
+        return;
+      }
+      recorder = new MediaRecorder(stream);
+      chunks = [];
+      recorder.ondataavailable = (event) => chunks.push(event.data);
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        clearInterval(ticker);
+        timer.textContent = "";
+        recButton.classList.remove("rec");
+        recButton.textContent = "● Бичиж эхлэх";
+        recButton.disabled = true;
+        recStatus.textContent = "Текст болгож байна...";
+        await sendRecording(new Blob(chunks, { type: recorder.mimeType }));
+        recButton.disabled = false;
+      };
+      recorder.start();
+      recButton.classList.add("rec");
+      recButton.textContent = "■ Зогсоох";
+      recStatus.textContent = "Сонсож байна...";
+      const start = Date.now();
+      timer.textContent = "0:00";
+      ticker = setInterval(() => {
+        const s = Math.floor((Date.now() - start) / 1000);
+        timer.textContent = Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+      }, 250);
+    }
+
+    async function sendRecording(blob) {
+      const form = new FormData();
+      form.append("audio", blob, "speech");
+      try {
+        const response = await fetch("/stt", { method: "POST", body: form });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail);
+        addEntry(data.text || "(юу ч сонсогдсонгүй)");
+        recStatus.textContent = "Дахин ярих бол товчоо дарна уу.";
+      } catch (error) {
+        addEntry("Алдаа: " + error.message, true);
+        recStatus.textContent = "Дахин оролдоно уу.";
+      }
+    }
+
+    function addEntry(text, isError = false) {
+      list.querySelector(".empty")?.remove();
+      const entry = document.createElement("div");
+      entry.className = "entry" + (isError ? " error" : "");
+
+      const time = document.createElement("span");
+      time.className = "time";
+      const now = new Date();
+      time.textContent = now.getHours() + ":" + String(now.getMinutes()).padStart(2, "0");
+
+      const words = document.createElement("span");
+      words.className = "text";
+      words.textContent = text; // as text, never as HTML (safe)
+      entry.append(time, words);
+
+      if (!isError) {
+        const copy = document.createElement("a");
+        copy.textContent = "хуулах";
+        copy.onclick = async () => {
+          await navigator.clipboard.writeText(text);
+          copy.textContent = "хуулсан";
+          setTimeout(() => (copy.textContent = "хуулах"), 1500);
+        };
+        const listen = document.createElement("a");
+        listen.textContent = "сонсох";
+        listen.onclick = () => {
+          ttsText.value = text;
+          showTab("tts");
+          speak();
+        };
+        entry.append(copy, listen);
+      }
+      list.prepend(entry); // newest on top
+    }
+
+    recButton.onclick = toggleRecording;
+    document.addEventListener("keydown", (event) => {
+      const typing = event.target.tagName === "TEXTAREA";
+      if (event.code === "Space" && !event.repeat && !typing && document.getElementById("stt").classList.contains("active")) {
+        event.preventDefault();
+        toggleRecording();
+      }
+    });
+    document.getElementById("clear").onclick = () => {
+      list.innerHTML = '<div class="empty">Одоохондоо юу ч алга.</div>';
+    };
+
+    // ---------- Text to speech ----------
+    const ttsText = document.getElementById("ttsText");
+    const speakButton = document.getElementById("speak");
+    const ttsStatus = document.getElementById("ttsStatus");
+    const player = document.getElementById("player");
+    const download = document.getElementById("download");
+    const rate = document.getElementById("rate");
+    const count = document.getElementById("count");
+
+    rate.oninput = () => (document.getElementById("rateValue").textContent = rate.value + "%");
+    ttsText.oninput = () => (count.textContent = ttsText.value.length + " тэмдэгт");
+    ttsText.oninput();
+
+    async function speak() {
+      const text = ttsText.value.trim();
+      if (!text) {
+        ttsStatus.textContent = "Эхлээд текст бичнэ үү.";
+        return;
+      }
+      speakButton.disabled = true;
+      ttsStatus.textContent = "Дуу үүсгэж байна...";
+      try {
+        const response = await fetch("/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: text, voice: document.getElementById("voice").value, rate: Number(rate.value) }),
+        });
+        if (!response.ok) throw new Error((await response.json()).detail);
+        const audioUrl = URL.createObjectURL(await response.blob());
+        player.src = audioUrl;
+        player.hidden = false;
+        download.href = audioUrl;
+        download.download = "marko.mp3";
+        download.style.display = "";
+        ttsStatus.textContent = "";
+        player.play().catch(() => (ttsStatus.textContent = "▶ товч дарж сонсоно уу."));
+      } catch (error) {
+        ttsStatus.textContent = "Алдаа: " + error.message;
+      }
+      speakButton.disabled = false;
+    }
+    speakButton.onclick = speak;
+  </script>
+</body>
+</html>

@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="mn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Марко</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #fafaf9;
+      color: #1c1917;
+      font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 24px 20px 40px; min-height: 100vh; display: flex; flex-direction: column; }
+    [hidden] { display: none !important; }
+
+    header { display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #d6d3d1; padding-bottom: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+    header .title { flex: 1; min-width: 160px; }
+    header h1 { margin: 0; font-size: 24px; }
+    header p { margin: 0; color: #78716c; font-size: 13px; }
+
+    .btn {
+      font: inherit; font-size: 14px; padding: 8px 14px; border-radius: 6px; cursor: pointer;
+      border: 1px solid #1d4ed8; background: #1d4ed8; color: #fff; white-space: nowrap;
+    }
+    .btn:hover { background: #1e40af; }
+    .btn:disabled { opacity: 0.5; cursor: wait; }
+    .btn.plain { background: #fff; color: #1c1917; border-color: #d6d3d1; }
+    .btn.plain:hover { background: #f5f5f4; }
+    .btn.ok { background: #15803d; border-color: #15803d; }
+    .btn.ok:hover { background: #166534; }
+    .pill { font-size: 13px; padding: 5px 10px; border-radius: 999px; background: #dcfce7; color: #166534; white-space: nowrap; }
+
+    /* Login */
+    .card { background: #fff; border: 1px solid #d6d3d1; border-radius: 10px; padding: 24px; max-width: 380px; margin: 60px auto; width: 100%; }
+    .card h2 { margin: 0 0 4px; font-size: 20px; }
+    .card p { margin: 0 0 18px; color: #78716c; font-size: 14px; }
+    .card label { display: block; font-size: 14px; color: #57534e; margin-bottom: 12px; }
+    input[type="email"], input[type="password"], input[type="text"] {
+      width: 100%; font: inherit; padding: 9px 11px; border: 1px solid #d6d3d1; border-radius: 6px; margin-top: 4px; background: #fff;
+    }
+    .card .row { display: flex; gap: 8px; margin-top: 6px; }
+    .card .row .btn { flex: 1; }
+    .note { color: #78716c; font-size: 13px; }
+    .error { color: #b91c1c; }
+
+    /* Chat */
+    .chat { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 4px 0 16px; }
+    .empty { color: #a8a29e; text-align: center; margin: 40px 0; }
+    .empty b { color: #57534e; font-weight: 500; }
+    .msg { max-width: 82%; padding: 10px 14px; border-radius: 14px; white-space: pre-wrap; word-wrap: break-word; }
+    .msg.user { align-self: flex-end; background: #1d4ed8; color: #fff; border-bottom-right-radius: 4px; }
+    .msg.marco { align-self: flex-start; background: #fff; border: 1px solid #e7e5e4; border-bottom-left-radius: 4px; }
+    .msg.fail { align-self: center; background: #fef2f2; color: #b91c1c; font-size: 14px; }
+    .msg .replay { margin-left: 8px; font-size: 13px; color: #1d4ed8; cursor: pointer; }
+
+    .steps { align-self: flex-start; max-width: 82%; font: 12px/1.6 ui-monospace, Menlo, monospace; color: #57534e; background: #f5f5f4; border-radius: 8px; padding: 8px 10px; }
+    .steps summary { cursor: pointer; color: #78716c; }
+    .steps .step { margin-top: 4px; }
+    .steps .step.error { color: #b91c1c; }
+    .steps .step.pending { color: #a16207; }
+
+    .confirm { align-self: flex-start; max-width: 82%; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 10px; padding: 12px 14px; }
+    .confirm .what { font-weight: 500; margin-bottom: 6px; }
+    .confirm .body { font-size: 14px; color: #44403c; white-space: pre-wrap; background: #fff; border: 1px solid #fde68a; border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; }
+    .confirm .row { display: flex; gap: 8px; }
+
+    /* Bottom bar */
+    .composer { position: sticky; bottom: 0; background: #fafaf9; border-top: 1px solid #e7e5e4; padding-top: 14px; }
+    .composer .row { display: flex; align-items: center; gap: 10px; }
+    .mic {
+      width: 64px; height: 64px; border-radius: 50%; border: none; cursor: pointer; flex-shrink: 0;
+      background: #1d4ed8; color: #fff; font-size: 26px; transition: transform 0.15s;
+    }
+    .mic:hover { transform: scale(1.05); }
+    .mic:disabled { opacity: 0.5; cursor: wait; transform: none; }
+    .mic.rec { background: #b91c1c; animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(185, 28, 28, 0.5); }
+      50% { box-shadow: 0 0 0 14px rgba(185, 28, 28, 0); }
+    }
+    .composer form { flex: 1; display: flex; gap: 8px; }
+    .composer input { margin-top: 0; }
+    .status { margin: 8px 0 0 74px; min-height: 20px; }
+    #timer { color: #b91c1c; font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- ===================== Login ===================== -->
+    <section id="loginView" hidden>
+      <div class="card">
+        <h2>Марко</h2>
+        <p>Хувийн туслах AI агент. Үргэлжлүүлэхийн тулд нэвтэрнэ үү.</p>
+        <form id="loginForm">
+          <label>Имэйл <input type="email" id="email" required autocomplete="email"></label>
+          <label>Нууц үг <input type="password" id="password" required minlength="6" autocomplete="current-password"></label>
+          <div class="row">
+            <button class="btn" type="submit" id="signIn">Нэвтрэх</button>
+            <button class="btn plain" type="button" id="signUp">Бүртгүүлэх</button>
+          </div>
+        </form>
+        <p class="note" id="loginStatus" style="margin: 14px 0 0"></p>
+      </div>
+    </section>
+
+    <!-- ===================== App ===================== -->
+    <section id="appView" hidden style="display: flex; flex-direction: column; flex: 1">
+      <header>
+        <div class="title">
+          <h1>Марко</h1>
+          <p id="who"></p>
+        </div>
+        <span class="pill" id="googleOk" hidden>✓ Google холбогдсон</span>
+        <button class="btn" id="googleConnect" hidden>Google холбох</button>
+        <button class="btn plain" id="newChat">Шинэ яриа</button>
+        <button class="btn plain" id="signOut">Гарах</button>
+      </header>
+
+      <div class="chat" id="chat">
+        <div class="empty" id="empty">
+          🎤 товч эсвэл <b>Space</b> дараад монголоор ярина уу.<br>
+          Жишээ нь: <b>«Маргааш 3 цагт Амгалан багштай уулзалт товлооч»</b>,
+          <b>«Маргааш юу байгаа вэ?»</b>, <b>«Болдод уулзалт хойшиллоо гэж мэйл бич»</b>
+        </div>
+      </div>
+
+      <div class="composer">
+        <div class="row">
+          <button class="mic" id="mic" aria-label="Ярих">🎤</button>
+          <form id="textForm">
+            <input type="text" id="textInput" placeholder="Эсвэл энд бичнэ үү..." autocomplete="off" maxlength="1000">
+            <button class="btn" type="submit" id="send">Илгээх</button>
+          </form>
+        </div>
+        <div class="status note" id="status"><span id="timer"></span> <span id="statusText"></span></div>
+      </div>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // =============================================================== Setup
+    const $ = (id) => document.getElementById(id);
+    const MAX_SECONDS = 15; // longest recording
+
+    let sb = null; // Supabase client
+    let session = null; // logged-in user's session
+    let conversationId = null; // the server remembers the chat by this id
+    let busy = false; // waiting for Marco
+    let player = null; // the voice that is playing now
+
+    async function start() {
+      const config = await (await fetch("/api/config")).json();
+      if (!config.supabase_anon_key) {
+        document.body.innerHTML =
+          '<p style="padding:40px;color:#b91c1c">backend/.env файлд SUPABASE_ANON_KEY нэмнэ үү (Supabase → Settings → API → anon public).</p>';
+        return;
+      }
+      sb = supabase.createClient(config.supabase_url, config.supabase_anon_key);
+      const { data } = await sb.auth.getSession();
+      sb.auth.onAuthStateChange((_event, newSession) => {
+        session = newSession;
+        render();
+      });
+      session = data.session;
+      render();
+    }
+
+    function render() {
+      $("loginView").hidden = !!session;
+      $("appView").hidden = !session;
+      if (!session) return;
+      $("who").textContent = session.user.email;
+      checkGoogle();
+      showGoogleResult();
+    }
+
+    // Every API call carries the login token
+    async function api(path, options = {}) {
+      const headers = { ...(options.headers || {}), Authorization: "Bearer " + session.access_token };
+      if (options.json) {
+        headers["Content-Type"] = "application/json";
+        options.body = JSON.stringify(options.json);
+      }
+      const response = await fetch(path, { ...options, headers });
+      const data = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        await sb.auth.signOut();
+        throw new Error("Нэвтрэлт дууссан. Дахин нэвтэрнэ үү.");
+      }
+      if (!response.ok) throw new Error(data.detail || "Серверийн алдаа " + response.status);
+      return data;
+    }
+
+    // =============================================================== Login
+    $("loginForm").onsubmit = async (event) => {
+      event.preventDefault();
+      setLogin("Нэвтэрч байна...");
+      const { error } = await sb.auth.signInWithPassword({ email: $("email").value, password: $("password").value });
+      setLogin(error ? "Алдаа: " + error.message : "", !!error);
+    };
+
+    $("signUp").onclick = async () => {
+      if (!$("loginForm").reportValidity()) return;
+      setLogin("Бүртгэж байна...");
+      const { data, error } = await sb.auth.signUp({ email: $("email").value, password: $("password").value });
+      if (error) return setLogin("Алдаа: " + error.message, true);
+      if (!data.session) setLogin("Бүртгэгдлээ! Имэйлээ шалгаж баталгаажуулаад нэвтэрнэ үү.");
+    };
+
+    $("signOut").onclick = () => sb.auth.signOut();
+
+    function setLogin(text, isError = false) {
+      $("loginStatus").textContent = text;
+      $("loginStatus").classList.toggle("error", isError);
+    }
+
+    // =============================================================== Google
+    async function checkGoogle() {
+      try {
+        const { connected } = await api("/api/google/status");
+        $("googleOk").hidden = !connected;
+        $("googleConnect").hidden = connected;
+      } catch (error) {
+        setStatus(error.message, true);
+      }
+    }
+
+    $("googleConnect").onclick = async () => {
+      try {
+        const { url } = await api("/api/google/connect");
+        location.href = url; // Google's consent page, then back to "/?google=connected"
+      } catch (error) {
+        setStatus(error.message, true);
+      }
+    };
+
+    function showGoogleResult() {
+      const result = new URLSearchParams(location.search).get("google");
+      if (!result) return;
+      const text = {
+        connected: "Google амжилттай холбогдлоо ✓",
+        cancelled: "Google холболтыг цуцаллаа.",
+        error: "Google холбоход алдаа гарлаа. Дахин оролдоно уу.",
+      }[result];
+      setStatus(text || "", result !== "connected");
+      history.replaceState(null, "", "/"); // clean the address bar
+    }
+
+    $("newChat").onclick = () => {
+      conversationId = null;
+      $("chat").innerHTML = "";
+      $("chat").append(emptyHint);
+      setStatus("Шинэ яриа эхэллээ.");
+    };
+    const emptyHint = $("empty");
+
+    // =============================================================== Chat view
+    function scrollDown() {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    }
+
+    function addMessage(text, who, audio) {
+      emptyHint.remove();
+      const div = document.createElement("div");
+      div.className = "msg " + who;
+      div.textContent = text; // as text, never as HTML (safe)
+      if (audio) {
+        const replay = document.createElement("a");
+        replay.className = "replay";
+        replay.textContent = "▶";
+        replay.title = "Дахин сонсох";
+        replay.onclick = () => play(audio);
+        div.append(replay);
+      }
+      $("chat").append(div);
+      scrollDown();
+    }
+
+    // Which tools the AI used: good for checking and for the diploma demo
+    function addSteps(steps) {
+      if (!steps || !steps.length) return;
+      const box = document.createElement("details");
+      box.className = "steps";
+      const summary = document.createElement("summary");
+      summary.textContent = "🔧 " + steps.map((s) => s.tool).join(" → ");
+      box.append(summary);
+      for (const step of steps) {
+        const line = document.createElement("div");
+        line.className = "step " + step.status;
+        line.textContent = step.tool + "(" + JSON.stringify(step.args) + ")\n→ " + step.result;
+        box.append(line);
+      }
+      $("chat").append(box);
+    }
+
+    // "Илгээх үү?" card for actions that can't be undone
+    function addConfirm(action) {
+      const card = document.createElement("div");
+      card.className = "confirm";
+      const what = document.createElement("div");
+      what.className = "what";
+      what.textContent = "Баталгаажуулах: " + action.summary;
+      card.append(what);
+      if (action.args && action.args.body) {
+        const body = document.createElement("div");
+        body.className = "body";
+        body.textContent = action.args.body;
+        card.append(body);
+      }
+      const row = document.createElement("div");
+      row.className = "row";
+      const yes = button("Тийм, илгээ", "btn ok");
+      const no = button("Үгүй", "btn plain");
+      yes.onclick = () => decide(card, action.id, true);
+      no.onclick = () => decide(card, action.id, false);
+      row.append(yes, no);
+      card.append(row);
+      $("chat").append(card);
+      scrollDown();
+    }
+
+    function button(text, className) {
+      const b = document.createElement("button");
+      b.textContent = text;
+      b.className = className;
+      return b;
+    }
+
+    async function decide(card, actionId, approve) {
+      card.querySelectorAll("button").forEach((b) => (b.disabled = true));
+      try {
+        const data = await api("/api/confirm", {
+          method: "POST",
+          json: { action_id: actionId, approve, conversation_id: conversationId },
+        });
+        card.querySelector(".row").textContent = approve ? "✓ Зөвшөөрсөн" : "✗ Цуцалсан";
+        addMessage(data.reply_text, "marco", data.audio_base64);
+        play(data.audio_base64);
+      } catch (error) {
+        card.querySelectorAll("button").forEach((b) => (b.disabled = false));
+        addMessage(error.message, "fail");
+      }
+    }
+
+    function play(audioBase64) {
+      if (!audioBase64) return;
+      if (player) player.pause();
+      player = new Audio("data:audio/mpeg;base64," + audioBase64);
+      player.play().catch(() => {}); // the browser may block sound until the first click
+    }
+
+    function showAnswer(data) {
+      conversationId = data.conversation_id;
+      addMessage(data.user_text || "(сонсогдсонгүй)", "user");
+      addSteps(data.steps);
+      addMessage(data.reply_text, "marco", data.audio_base64);
+      if (data.pending_action) addConfirm(data.pending_action);
+      play(data.audio_base64);
+    }
+
+    function setBusy(on, text = "") {
+      busy = on;
+      $("mic").disabled = on;
+      $("send").disabled = on;
+      setStatus(text);
+    }
+
+    function setStatus(text, isError = false) {
+      $("statusText").textContent = text;
+      $("statusText").classList.toggle("error", isError);
+    }
+
+    // =============================================================== Typing
+    $("textForm").onsubmit = async (event) => {
+      event.preventDefault();
+      const text = $("textInput").value.trim();
+      if (!text || busy) return;
+      $("textInput").value = "";
+      setBusy(true, "Марко бодож байна...");
+      try {
+        showAnswer(await api("/api/chat", { method: "POST", json: { text, conversation_id: conversationId } }));
+        setStatus("");
+      } catch (error) {
+        addMessage(error.message, "fail");
+        setStatus("");
+      }
+      setBusy(false);
+    };
+
+    // =============================================================== Microphone
+    let recorder = null;
+    let chunks = [];
+    let ticker = null;
+    let stopTimer = null;
+
+    function pickMimeType() {
+      const types = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"];
+      return types.find((t) => MediaRecorder.isTypeSupported(t)) || "";
+    }
+
+    async function toggleRecording() {
+      if (busy) return;
+      if (recorder && recorder.state === "recording") {
+        stopRecording();
+        return;
+      }
+
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
+        });
+      } catch (error) {
+        setStatus("Микрофон ашиглах зөвшөөрөл өгнө үү.", true);
+        return;
+      }
+      if (player) player.pause(); // don't record Marco's own voice
+
+      chunks = [];
+      recorder = new MediaRecorder(stream, { mimeType: pickMimeType() });
+      recorder.ondataavailable = (event) => event.data.size && chunks.push(event.data);
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop()); // microphone off
+        await sendRecording(new Blob(chunks, { type: recorder.mimeType }));
+      };
+      recorder.start();
+
+      $("mic").classList.add("rec");
+      setStatus("Сонсож байна... дуусаад дахин дарна уу");
+      const began = Date.now();
+      $("timer").textContent = "0:00";
+      ticker = setInterval(() => {
+        const s = Math.floor((Date.now() - began) / 1000);
+        $("timer").textContent = "0:" + String(s).padStart(2, "0");
+      }, 250);
+      stopTimer = setTimeout(stopRecording, MAX_SECONDS * 1000);
+    }
+
+    function stopRecording() {
+      clearTimeout(stopTimer);
+      clearInterval(ticker);
+      $("timer").textContent = "";
+      $("mic").classList.remove("rec");
+      if (recorder && recorder.state === "recording") recorder.stop();
+    }
+
+    async function sendRecording(blob) {
+      if (blob.size < 2000) {
+        setStatus("Бичлэг хэт богино байна. Дахин оролдоно уу.");
+        return;
+      }
+      setBusy(true, "Сонсож ойлгож байна...");
+      const form = new FormData();
+      form.append("audio", blob, blob.type.includes("mp4") ? "voice.mp4" : "voice.webm");
+      if (conversationId) form.append("conversation_id", conversationId);
+      try {
+        showAnswer(await api("/api/voice", { method: "POST", body: form }));
+        setStatus("");
+      } catch (error) {
+        addMessage(error.message, "fail");
+        setStatus("");
+      }
+      setBusy(false);
+    }
+
+    $("mic").onclick = toggleRecording;
+    document.addEventListener("keydown", (event) => {
+      const typing = ["INPUT", "TEXTAREA"].includes(event.target.tagName);
+      if (event.code === "Space" && !event.repeat && !typing && session) {
+        event.preventDefault();
+        toggleRecording();
+      }
+    });
+
+    start();
+  </script>
+</body>
+</html>

@@ -3,3 +3,11 @@ pydantic-settings
 sqlalchemy
 psycopg[binary]
 alembic
+av
+edge-tts
+torch
+transformers==4.57.*
+httpx
+ollama
+google-api-python-client
+google-auth-oauthlib
