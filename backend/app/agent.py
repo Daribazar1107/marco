@@ -68,7 +68,8 @@ def _call_llm(messages: list) -> object:
         model=settings.ollama_model,
         messages=messages,
         tools=list(TOOLS.values()),  # Ollama builds the tool schema from the docstrings
-        options={"temperature": 0.2},  # calm and consistent, not creative
+        think=False,  # Gemma 4 "thinks" out loud by default: slow for a voice assistant
+        options={"temperature": 0.2, "num_ctx": 8192},  # calm answers; room for tools + history
     ).message
 
 

@@ -3,6 +3,9 @@
 POST /api/voice    recording -> text -> agent -> voice
 POST /api/chat     typed text -> agent -> voice
 POST /api/confirm  "Тийм" / "Үгүй" on the confirm card
+GET  /api/conversations        sidebar list
+GET  /api/conversations/{id}   one conversation's messages
+DELETE /api/conversations/{id}
 """
 
 import asyncio
@@ -110,3 +113,26 @@ async def confirm(request: ConfirmRequest, user: CurrentUser = Depends(get_curre
         conversation_id = conversations.get_or_create(user.id, request.conversation_id)
         conversations.save(conversation_id, "assistant", reply)
     return {"reply_text": reply, "audio_base64": await speak(reply)}
+
+
+# ---------------------------------------------------------------- History (sidebar)
+
+
+@router.get("/conversations")
+def list_conversations(user: CurrentUser = Depends(get_current_user)):
+    return conversations.list_for_user(user.id)
+
+
+@router.get("/conversations/{conversation_id}")
+def get_conversation(conversation_id: int, user: CurrentUser = Depends(get_current_user)):
+    found = conversations.messages(user.id, conversation_id)
+    if found is None:
+        raise HTTPException(404, "Яриа олдсонгүй")
+    return {"id": conversation_id, "messages": found}
+
+
+@router.delete("/conversations/{conversation_id}")
+def delete_conversation(conversation_id: int, user: CurrentUser = Depends(get_current_user)):
+    if not conversations.remove(user.id, conversation_id):
+        raise HTTPException(404, "Яриа олдсонгүй")
+    return {"deleted": conversation_id}
